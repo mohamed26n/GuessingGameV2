@@ -63,8 +63,6 @@ socket.on('message', (message) => {
     });
 
 
-
-// Wenn 'gameStarted' empfangen wird, ändern Sie das Styling
 socket.on('gameStarted', () => {
   // Verstecke den Willkommens-Text, das Eingabefeld und den "Raum beitreten"-Button
   document.querySelector('h1').style.display = 'none';
@@ -73,14 +71,35 @@ socket.on('gameStarted', () => {
   document.getElementById('setUsername').style.display = 'none';
     document.getElementById('username').style.display = 'none';
   // Ändere die Schriftgröße des Resultats
-  document.getElementById('result').style.fontSize = '2em'; // 2em ist nur ein Beispiel, passen Sie die Größe an Ihre Bedürfnisse an
+  document.getElementById('result').style.fontSize = '2em'; 
 
   // Ändere den Text des "Spiel starten"-Buttons
   document.getElementById('start-game-button').innerText = 'Spiel neu starten';
    
 });
 
-// In Ihrer script.js-Datei auf dem Client
+document.addEventListener("DOMContentLoaded", function() {
+});
+        var i = 0;
+        var txt = 'Willkommen'; 
+        var txt2 = '          Bitte geben Sie Ihren Namen ein und wählen Sie einen Raum aus.';
+        var speed = 100; 
+
+        function typeWriter() {
+          if (i < txt.length) {
+            document.getElementById("welcome").innerHTML += txt.charAt(i);
+            i++;
+            setTimeout(typeWriter, speed);
+
+          } else if (i < txt2.length) {
+            document.getElementById("welcome2").innerHTML += txt2.charAt(i);
+            i++;
+            setTimeout(typeWriter, speed);
+          }
+        }
+
+        window.onload = typeWriter;
+       
 
 
 
