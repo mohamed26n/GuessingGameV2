@@ -85,16 +85,33 @@ function getRandomName() {
 }
 
 function startGame(room) {
-  const { players, topic } = rooms[room];
+  const { players, topic, host } = rooms[room];
   const chosenTopic = topic && topic.trim() ? topic : 'Fußballer';
-  const impIndex = Math.floor(Math.random()*players.length);
-  players.forEach((p,i) => {
-    const isImposter = i === impIndex;
+  
+  // Erstelle eine Liste von Spielern, die Imposter werden können
+  // Schließe den Host aus, wenn ein Thema gesetzt wurde
+  const eligiblePlayers = topic && topic.trim() 
+    ? players.filter(p => p.id !== host)
+    : players;
+  
+  // Wenn alle Spieler außer dem Host ausgeschlossen sind, kann niemand Imposter sein
+  if (eligiblePlayers.length === 0) {
+    io.to(room).emit('message', 'Nicht genügend Spieler für einen Imposter.');
+    return;
+  }
+  
+  // Wähle zufälligen Imposter aus den berechtigten Spielern
+  const randomIndex = Math.floor(Math.random() * eligiblePlayers.length);
+  const imposterPlayerId = eligiblePlayers[randomIndex].id;
+  
+  // Informiere jeden Spieler über seinen Status
+  players.forEach(player => {
+    const isImposter = player.id === imposterPlayerId;
     const msg = isImposter
       ? 'Du bist der Imposter! Täusche die anderen Spieler :)'
       : `Das Thema ist: ${chosenTopic}`;
-    io.to(p.id).emit('message', msg);
-    io.to(p.id).emit('imposterStatus', isImposter);
+    io.to(player.id).emit('message', msg);
+    io.to(player.id).emit('imposterStatus', isImposter);
   });
 }
 
