@@ -1,31 +1,32 @@
 <!DOCTYPE html>
 <html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/x-icon" href="VaporIcon.ico">
-    <link rel="stylesheet" href="style.css" />
-    <title>Game</title>
-    <style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="VaporIcon.ico" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Game</title>
+</head>
+<body>
+  <div id="game-container">
+    <h2 id="welcome"></h2>
+    <h4 id="welcome2"></h4>
+    <input type="text" id="username" placeholder="Benutzername eingeben" />
+    <input type="text" id="room-input" placeholder="Raumname" />
+    <button id="join-button">Raum beitreten</button>
+    <div id="result"></div>
 
-    </style>
-  </head>
-  <body>
-    <div id="game-container">
-      <h2 id="welcome"></h2>
-      <h4 id="welcome2"></h4>
-      <input type="text" id="room-input" placeholder="Raumname" />
-      <input type="text" id="username" placeholder="Enter your username" />
-      <button id="join-button">Raum beitreten</button>
-      <div id="result"></div>
-      <div id="host-controls" style="display: none">
-        <ul id="playersList"></ul> 
-        <button id="start-game-button">Spiel starten</button>
+    <div id="host-controls" style="display: none">
+      <input type="text" id="topic-input" placeholder="Gib hier das Thema ein" />
+      <button id="start-game-button">Spiel starten</button>
+      <div class="players-container">
+        <h3>Spieler im Raum</h3>
+        <ul id="playersList"></ul>
       </div>
-   
-      
     </div>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js"></script>
-  </body>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+</body>
 </html>
