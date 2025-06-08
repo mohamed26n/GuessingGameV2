@@ -1121,13 +1121,9 @@ function setupStartGameButton() {
         console.log('Setting topic for gamemaster mode:', topic);
         socket.emit('setTopic', roomCode, topic);
       } else if (gameSettings.mode === 'football') {
-        // Im Fußball-Modus wird der Schwierigkeitsgrad als Thema verwendet
-        if (!gameSettings.difficulty) {
-          showNotification('Bitte wähle einen Schwierigkeitsgrad aus!', 'error');
-          return;
-        }
-        console.log('Setting difficulty for football mode:', gameSettings.difficulty);
-        socket.emit('setTopic', roomCode, gameSettings.difficulty);
+        // Im Fußball-Modus wird der Schwierigkeitsgrad bereits beim Erstellen des Raums gesetzt
+        // Kein setTopic nötig, da der Server automatisch einen Fußballspieler generiert
+        console.log('Football mode - using difficulty:', gameSettings.difficulty);
       } else {
         // Fallback für andere Modi
         console.log('Unknown mode, defaulting to no topic');

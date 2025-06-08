@@ -130,6 +130,8 @@ io.on('connection', socket => {
         difficulty: data.difficulty || userGameSettings.difficulty || 'medium'
       };
       
+      console.log('Game settings created:', gameSettings);
+      
       console.log('Updated game settings:', gameSettings);
     }
     
@@ -792,7 +794,14 @@ function getRandomName(difficulty = 'medium') {
 function startGame(room) {
   const { players, topic, host, mode, difficulty } = rooms[room];
   
+  console.log(`Starting game for room ${room}:`);
+  console.log(`- Mode: ${mode}`);
+  console.log(`- Difficulty: ${difficulty}`);
+  console.log(`- Players: ${players.length}`);
+  console.log(`- Host: ${host}`);
+  
   if (mode === 'gamemaster') {
+    console.log('Using gamemaster mode logic');
     // Gamemaster Modus: Host ist kein Imposter und bekommt kein Thema
     const eligiblePlayers = players.filter(p => p.id !== host);
     
@@ -820,16 +829,20 @@ function startGame(room) {
     });
     
   } else if (mode === 'football') {
+    console.log('Using football mode logic');
     // Fußball Imposter Modus: Zufälliger Spieler aus der Datenbank
     const footballPlayer = getRandomName(difficulty);
+    console.log(`Selected football player: ${footballPlayer}`);
     const randomIndex = Math.floor(Math.random() * players.length);
     const imposterPlayerId = players[randomIndex].id;
+    console.log(`Imposter selected: ${imposterPlayerId} (index: ${randomIndex})`);
     
     players.forEach(player => {
       const isImposter = player.id === imposterPlayerId;
       const msg = isImposter
         ? 'Du bist der Imposter! Täusche die anderen Spieler :)'
         : `Der Fußballspieler ist: ${footballPlayer}`;
+      console.log(`Sending to ${player.username || player.id}: ${msg}`);
       io.to(player.id).emit('message', msg);
       io.to(player.id).emit('imposterStatus', isImposter);
     });
