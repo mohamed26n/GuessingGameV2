@@ -120,6 +120,25 @@ function getCurrentScreen() {
   return 'start-menu'; // default fallback
 }
 
+// ===== GAME MODE SELECTION =====
+function selectGameMode(mode) {
+  console.log('Selecting game mode:', mode);
+  gameSettings.mode = mode;
+  
+  if (mode === 'football') {
+    showFootballSettings();
+  } else if (mode === 'gamemaster') {
+    startLobby();
+  }
+}
+
+function showFootballSettings() {
+  console.log('Showing football settings');
+  hideAllScreens();
+  document.getElementById('football-settings').style.display = 'block';
+  document.getElementById('football-settings').classList.remove('hidden');
+}
+
 // Enhanced Theme Management with Smooth Transitions
 function createThemeTransition() {
   const overlay = document.createElement('div');
@@ -781,6 +800,22 @@ socket.on('message', (message) => {
   showNotification(message, 'info');
 });
 
+// Handle imposter status
+socket.on('imposterStatus', (isImposter) => {
+  console.log('Imposter status received:', isImposter);
+  
+  const imposterStatusElement = document.getElementById('imposter-status');
+  if (imposterStatusElement) {
+    if (isImposter) {
+      imposterStatusElement.textContent = '🎭 Du bist der Imposter!';
+      imposterStatusElement.className = 'imposter-status imposter-true';
+    } else {
+      imposterStatusElement.textContent = '👥 Du bist ein normaler Spieler';
+      imposterStatusElement.className = 'imposter-status imposter-false';
+    }
+  }
+});
+
 function selectGameMode(mode) {
   gameSettings.mode = mode;
   
@@ -1005,8 +1040,14 @@ socket.on('host', receivedIsHost => {
       topicInput.style.display = 'none';
     }
     
-    addXP(25, 'Host geworden');
-    showAchievement('Gastgeber', 'Du bist jetzt der Spielleiter!');
+    // Verschiedene Nachrichten je nach Modus
+    if (gameSettings.mode === 'gamemaster') {
+      addXP(25, 'Host geworden');
+      showAchievement('Gastgeber', 'Du bist jetzt der Spielleiter!');
+    } else if (gameSettings.mode === 'football') {
+      addXP(25, 'Raum erstellt');
+      showAchievement('Raum-Ersteller', 'Du hast einen Fußball-Raum erstellt!');
+    }
   }
 });
 
@@ -1080,9 +1121,13 @@ function setupStartGameButton() {
         console.log('Setting topic for gamemaster mode:', topic);
         socket.emit('setTopic', roomCode, topic);
       } else if (gameSettings.mode === 'football') {
-        // Im Fußball-Modus wird das Topic-Feld ausgeblendet/ignoriert
-        console.log('Football mode - no topic needed');
-        socket.emit('setTopic', roomCode, null); // Kein spezifisches Thema
+        // Im Fußball-Modus wird der Schwierigkeitsgrad als Thema verwendet
+        if (!gameSettings.difficulty) {
+          showNotification('Bitte wähle einen Schwierigkeitsgrad aus!', 'error');
+          return;
+        }
+        console.log('Setting difficulty for football mode:', gameSettings.difficulty);
+        socket.emit('setTopic', roomCode, gameSettings.difficulty);
       } else {
         // Fallback für andere Modi
         console.log('Unknown mode, defaulting to no topic');

@@ -612,7 +612,6 @@ button {
     font-weight: 700;
     cursor: pointer;
     transition: all var(--transition-smooth) var(--bounce);
-    min-width: 220px;
     margin-bottom: 15px;
     box-shadow: 
         0 8px 25px var(--shadow-glow),
@@ -1161,8 +1160,8 @@ input:focus,
     backdrop-filter: blur(15px);
     border: 2px solid var(--glass-border);
     border-radius: 50%;
-    width: 60px;
-    height: 60px;
+    width: 20px;
+    height: 20px;
     font-size: 1.5rem;
     cursor: pointer;
     transition: all var(--transition-smooth);
@@ -2596,6 +2595,7 @@ body.imposter .game-over-stats {
     color: #f87171;
     padding: 1rem;
     border-radius: 15px;
+    box-shadow: 
         0 0 35px rgba(0, 255, 255, 0.25),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }

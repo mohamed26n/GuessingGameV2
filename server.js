@@ -107,8 +107,7 @@ io.on('connection', socket => {
   socket.on('setTopic', (room, topic) => {
     if (rooms[room]) {
       rooms[room].topic = topic;
-      rooms[room].mode = userGameSettings.mode;
-      rooms[room].difficulty = userGameSettings.difficulty;
+      // room mode and difficulty remain as set during room creation
     }
   });
 
@@ -455,7 +454,8 @@ function createRoomWithCode(socket, gameSettings) {
     
     socket.emit('roomCreated', { 
       code: roomCode, 
-      isHost: true 
+      isHost: true,
+      mode: gameSettings.mode
     });
     
     socket.emit('host', true);
