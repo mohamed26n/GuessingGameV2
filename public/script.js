@@ -1317,140 +1317,484 @@ function initializeChat() {
   const chatMessages = document.getElementById('chat-messages');
   
   if (chatToggle) {
-    chatToggle.addEventListener('click', toggleChat);
-  }
-  
-  if (sendChatBtn && chatInput) {
-    sendChatBtn.addEventListener('click', sendChatMessage);
-    chatInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        sendChatMessage();
+    chatToggle.addEventListener('click', () => {
+      toggleChatVisibility();
+      // Remove notification badge when opening chat
+      if (chatVisible) {
+        removeChatNotificationBadge();
       }
     });
   }
   
+  if (sendChatBtn && chatInput) {
+    // Button click handler
+    sendChatBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      sendChatMessage();
+    });
+    
+    // Touch event handlers for mobile
+    sendChatBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      sendChatBtn.style.transform = 'scale(0.95)';
+    });
+    
+    sendChatBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      sendChatBtn.style.transform = '';
+      sendChatMessage();
+    });
+    
+    // Enhanced keyboard handler
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        // Prevent default behavior
+        e.preventDefault();
+        
+        // On mobile, check if it's a soft keyboard enter
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+          sendChatMessage();
+        }
+      }
+    });
+    
+    // Input event for auto-resize, validation and counter
+    chatInput.addEventListener('input', (e) => {
+      // Auto-resize
+      e.target.style.height = 'auto';
+      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+      
+      // Update character counter
+      updateMessageCounter();
+      
+      // Visual feedback for message length
+      const length = e.target.value.length;
+      const maxLength = 200;
+      if (length > maxLength * 0.8) {
+        e.target.style.borderColor = length >= maxLength ? '#ff4444' : '#ffaa00';
+      } else {
+        e.target.style.borderColor = '';
+      }
+    });
+    
+    // Focus management for mobile
+    chatInput.addEventListener('focus', () => {
+      // Scroll to input on mobile
+      if (window.innerWidth <= 768) {
+        setTimeout(() => {
+          chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+    });
+  }
+  
+  // Setup enhanced features
+  handleMobileKeyboard();
+  setupChatSwipeGestures();
+  
+  // Setup chat input auto-resize
+  setupChatInputResize();
+  
   // Chat-Nachrichten empfangen
   socket.on('chatMessage', (data) => {
-    displayChatMessage(data.username, data.message, data.timestamp);
+    const messageType = data.type || (data.username === 'System' ? 'system' : 'other');
+    displayChatMessage(data.username, data.message, data.timestamp, messageType);
   });
 }
 
-function toggleChat() {
-  const liveChat = document.getElementById('live-chat');
-  const chatToggle = document.getElementById('toggle-chat');
-  
-  if (liveChat) {
-    chatVisible = !chatVisible;
-    if (chatVisible) {
-      liveChat.style.display = 'flex';
-      chatToggle.textContent = '✖️';
-      chatToggle.title = 'Chat schließen';
-    } else {
-      liveChat.style.display = 'none';
-      chatToggle.textContent = '💬';
-      chatToggle.title = 'Chat öffnen';
-    }
-  }
-}
-
+// Enhanced send chat message function
 function sendChatMessage() {
   const chatInput = document.getElementById('chat-input');
-  const message = chatInput.value.trim();
+  const usernameInput = document.getElementById('username');
+  const sendBtn = document.getElementById('send-chat');
   
-  if (message && roomCode) {
-    socket.emit('chatMessage', {
-      room: roomCode,
-      message: message,
-      username: socket.username || 'Unbekannter Spieler'
-    });
-    chatInput.value = '';
+  if (!chatInput || !usernameInput) return;
+  
+  const message = chatInput.value.trim();
+  const username = usernameInput.value.trim() || 'Anonym';
+  
+  if (!message) {
+    // Visual feedback for empty message
+    chatInput.style.borderColor = '#ff4444';
+    chatInput.focus();
+    setTimeout(() => {
+      chatInput.style.borderColor = '';
+    }, 1000);
+    return;
+  }
+  
+  // Check if we're in a room
+  if (!roomCode) {
+    showErrorMessage('Du musst zuerst einem Raum beitreten!');
+    chatInput.focus();
+    return;
+  }
+  
+  // Prevent double sending
+  if (sendBtn) {
+    sendBtn.disabled = true;
+    sendBtn.style.opacity = '0.6';
+  }
+  
+  // Send message to server
+  socket.emit('chatMessage', {
+    room: roomCode,
+    username: username,
+    message: message,
+    timestamp: Date.now()
+  });
+  
+  // Clear input and reset
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  chatInput.style.borderColor = '';
+  
+  // Re-enable send button after short delay
+  setTimeout(() => {
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.style.opacity = '';
+    }
+  }, 500);
+  
+  // Keep focus on input for quick messaging
+  setTimeout(() => {
+    chatInput.focus();
+  }, 100);
+  
+  // Add haptic feedback
+  triggerHapticFeedback('light');
+}
+
+// Chat message sound effect
+function playMessageSound() {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+  } catch (error) {
+    // Ignore audio errors
   }
 }
 
-function displayChatMessage(username, message, timestamp) {
+// Enhanced chat toggle functionality with better mobile support
+function toggleChatVisibility() {
+  const liveChat = document.getElementById('live-chat');
+  const toggleBtn = document.getElementById('toggle-chat');
+  
+  if (!liveChat || !toggleBtn) return;
+  
+  chatVisible = !chatVisible;
+  
+  if (chatVisible) {
+    liveChat.style.display = 'block';
+    // Add slide-in animation
+    liveChat.style.transform = 'translateY(100%)';
+    liveChat.style.opacity = '0';
+    
+    requestAnimationFrame(() => {
+      liveChat.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease';
+      liveChat.style.transform = 'translateY(0)';
+      liveChat.style.opacity = '1';
+    });
+    
+    toggleBtn.textContent = '✖️';
+    toggleBtn.setAttribute('aria-label', 'Chat schließen');
+    
+    // Focus input when opening chat (with delay for animation)
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+      setTimeout(() => {
+        chatInput.focus();
+        // Prevent zoom on iOS by ensuring font-size is 16px
+        if (window.innerWidth <= 768) {
+          chatInput.style.fontSize = '16px';
+        }
+      }, 350);
+    }
+    
+    // Add body class for mobile layout adjustments
+    if (window.innerWidth <= 768) {
+      document.body.classList.add('chat-open');
+    }
+    
+  } else {
+    // Add slide-out animation
+    liveChat.style.transform = 'translateY(100%)';
+    liveChat.style.opacity = '0';
+    
+    setTimeout(() => {
+      liveChat.style.display = 'none';
+      liveChat.style.transition = '';
+    }, 300);
+    
+    toggleBtn.textContent = '💬';
+    toggleBtn.setAttribute('aria-label', 'Chat öffnen');
+    
+    // Remove body class
+    document.body.classList.remove('chat-open');
+    
+    // Blur any focused input to hide mobile keyboard
+    const activeElement = document.activeElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+      activeElement.blur();
+    }
+  }
+  
+  // Add haptic feedback
+  triggerHapticFeedback('medium');
+}
+
+// Enhanced auto-resize chat input with mobile optimization
+function setupChatInputResize() {
+  const chatInput = document.getElementById('chat-input');
+  if (!chatInput) return;
+  
+  // Set initial font size for mobile to prevent zoom
+  if (window.innerWidth <= 768) {
+    chatInput.style.fontSize = '16px';
+  }
+  
+  // Auto-resize functionality
+  chatInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    const newHeight = Math.min(this.scrollHeight, 120);
+    this.style.height = newHeight + 'px';
+    
+    // Adjust chat messages container height on mobile
+    if (window.innerWidth <= 768) {
+      const chatMessages = document.getElementById('chat-messages');
+      if (chatMessages) {
+        const extraHeight = newHeight - 50; // 50px is default input height
+        chatMessages.style.paddingBottom = Math.max(0, extraHeight) + 'px';
+      }
+    }
+  });
+  
+  // Handle viewport changes (mobile keyboard)
+  window.addEventListener('resize', () => {
+    if (chatVisible && window.innerWidth <= 768) {
+      const chatInput = document.getElementById('chat-input');
+      if (chatInput && document.activeElement === chatInput) {
+        setTimeout(() => {
+          chatInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    }
+  });
+}
+
+// Enhanced chat message display with mobile optimizations
+function displayChatMessage(username, message, timestamp, type = 'other') {
   const chatMessages = document.getElementById('chat-messages');
   if (!chatMessages) return;
   
+  // Get current user's username for comparison
+  const currentUsername = document.getElementById('username')?.value || '';
+  const isCurrentUser = username === currentUsername;
+  const isSystemMessage = type === 'system' || username === 'System';
+  
   const messageElement = document.createElement('div');
   messageElement.classList.add('chat-message');
+  
+  if (isCurrentUser) {
+    messageElement.classList.add('user');
+  } else if (isSystemMessage) {
+    messageElement.classList.add('system');
+  } else {
+    messageElement.classList.add('other');
+  }
   
   const time = new Date(timestamp).toLocaleTimeString('de-DE', {
     hour: '2-digit',
     minute: '2-digit'
   });
   
-  messageElement.innerHTML = `
-    <div class="message-header">
-      <span class="message-username">${username}</span>
-      <span class="message-time">${time}</span>
-    </div>
-    <div class="message-content">${message}</div>
-  `;
+  if (isSystemMessage) {
+    messageElement.innerHTML = `
+      <div class="message-content">${message}</div>
+      <div class="message-time">${time}</div>
+    `;
+  } else {
+    messageElement.innerHTML = `
+      <div class="message-sender">${username}</div>
+      <div class="message-content">${message}</div>
+      <div class="message-time">${time}</div>
+    `;
+  }
+  
+  // Add entrance animation
+  messageElement.style.opacity = '0';
+  messageElement.style.transform = 'translateY(20px)';
   
   chatMessages.appendChild(messageElement);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
   
-  // Begrenze die Anzahl der Nachrichten
+  // Animate in
+  requestAnimationFrame(() => {
+    messageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    messageElement.style.opacity = '1';
+    messageElement.style.transform = 'translateY(0)';
+  });
+  
+  // Smooth scroll to bottom
+  chatMessages.scrollTo({
+    top: chatMessages.scrollHeight,
+    behavior: 'smooth'
+  });
+  
+  // Add notification badge if chat is closed and message is from another user
+  if (!chatVisible && !isCurrentUser && !isSystemMessage) {
+    addChatNotificationBadge();
+  }
+  
+  // Play sound effect
+  if (!isCurrentUser && 'AudioContext' in window) {
+    playMessageSound();
+  }
+  
+  // Limit message history for performance
   if (chatMessages.children.length > 50) {
     chatMessages.removeChild(chatMessages.firstChild);
   }
-}
-
-// Automatisches Beitreten per URL-Parameter
-function checkUrlParameters() {
-  // Check for injected room code from server
-  if (window.autoJoinRoomCode) {
-    const roomCode = window.autoJoinRoomCode;
-    const roomCodeInput = document.getElementById('room-code-input');
-    if (roomCodeInput) {
-      roomCodeInput.value = roomCode;
-      // Automatisch zum "Raum beitreten" Modus wechseln
-      const joinOption = document.querySelector('[data-option="join"]');
-      if (joinOption) {
-        joinOption.click();
-      }
-    }
-    return;
-  }
   
-  // Check URL parameters
-  const urlParams = new URLSearchParams(window.location.search);
-  const roomParam = urlParams.get('room');
-  
-  if (roomParam) {
-    const roomCodeInput = document.getElementById('room-code-input');
-    if (roomCodeInput) {
-      roomCodeInput.value = roomParam.toUpperCase();
-      // Automatisch zum "Raum beitreten" Modus wechseln
-      const joinOption = document.querySelector('[data-option="join"]');
-      if (joinOption) {
-        joinOption.click();
-      }
-    }
+  // Add haptic feedback for received messages
+  if (!isCurrentUser) {
+    triggerHapticFeedback('light');
   }
 }
 
-// Achievement System Functions
-function showAchievement(title, description) {
-  const achievementOverlay = document.getElementById('achievement-overlay');
-  const achievementTitle = document.querySelector('.achievement-title');
-  const achievementDescription = document.querySelector('.achievement-description');
+// Add notification badge to chat toggle
+function addChatNotificationBadge() {
+  const chatToggle = document.getElementById('toggle-chat');
+  if (chatToggle) {
+    chatToggle.classList.add('has-new-messages');
+  }
+}
+
+// Remove notification badge
+function removeChatNotificationBadge() {
+  const chatToggle = document.getElementById('toggle-chat');
+  if (chatToggle) {
+    chatToggle.classList.remove('has-new-messages');
+  }
+}
+
+// Enhanced message character counter
+function updateMessageCounter() {
+  const chatInput = document.getElementById('chat-input');
+  const chatInputContainer = document.querySelector('.chat-input');
   
-  if (achievementOverlay && achievementTitle && achievementDescription) {
-    achievementTitle.textContent = title;
-    achievementDescription.textContent = description;
+  if (!chatInput || !chatInputContainer) return;
+  
+  const currentLength = chatInput.value.length;
+  const maxLength = 200;
+  const remaining = maxLength - currentLength;
+  
+  chatInputContainer.setAttribute('data-count', `${remaining}`);
+  
+  if (currentLength > maxLength * 0.8) {
+    chatInputContainer.classList.add('show-counter');
+    if (remaining <= 0) {
+      chatInput.style.borderColor = '#ff4444';
+    } else if (remaining <= 40) {
+      chatInput.style.borderColor = '#ffaa00';
+    }
+  } else {
+    chatInputContainer.classList.remove('show-counter');
+    chatInput.style.borderColor = '';
+  }
+}
+
+// Mobile keyboard handling
+function handleMobileKeyboard() {
+  if (window.innerWidth > 768) return;
+  
+  const chatInput = document.getElementById('chat-input');
+  const liveChat = document.getElementById('live-chat');
+  
+  if (!chatInput || !liveChat) return;
+  
+  let initialViewportHeight = window.innerHeight;
+  
+  window.addEventListener('resize', () => {
+    const currentHeight = window.innerHeight;
+    const heightDifference = initialViewportHeight - currentHeight;
     
-    achievementOverlay.style.display = 'flex';
-    achievementOverlay.classList.add('show');
-    
-    // Auto-hide after 3 seconds
-    setTimeout(() => {
-      achievementOverlay.classList.remove('show');
+    // Keyboard likely opened if height decreased significantly
+    if (heightDifference > 150) {
+      liveChat.style.height = `calc(60vh - ${heightDifference * 0.3}px)`;
+      
+      // Scroll input into view
       setTimeout(() => {
-        achievementOverlay.style.display = 'none';
-      }, 300);
-    }, 3000);
-  }
-  
-  console.log(`🏆 Achievement: ${title} - ${description}`);
+        chatInput.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 100);
+    } else {
+      // Keyboard closed
+      liveChat.style.height = '60vh';
+    }
+  });
 }
+
+// Swipe to close chat on mobile
+function setupChatSwipeGestures() {
+  const liveChat = document.getElementById('live-chat');
+  if (!liveChat || window.innerWidth > 768) return;
+  
+  let startY = 0;
+  let currentY = 0;
+  let isDragging = false;
+  
+  liveChat.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    isDragging = true;
+    liveChat.style.transition = 'none';
+  });
+  
+  liveChat.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    
+    currentY = e.touches[0].clientY;
+    const deltaY = currentY - startY;
+    
+    // Only allow downward swipe
+    if (deltaY > 0) {
+      liveChat.style.transform = `translateY(${deltaY}px)`;
+    }
+  });
+  
+  liveChat.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    
+    isDragging = false;
+    liveChat.style.transition = '';
+    
+    const deltaY = currentY - startY;
+    
+    // Close chat if swiped down more than 100px
+    if (deltaY > 100) {
+      toggleChatVisibility();
+    } else {
+      // Snap back
+      liveChat.style.transform = 'translateY(0)';
+    }
+  });
+}
+
+// ...existing code...
