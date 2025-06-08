@@ -8,22 +8,206 @@
   <title>Game</title>
 </head>
 <body>
-  <div id="game-container">
-    <h2 id="welcome"></h2>
-    <h4 id="welcome2"></h4>
-    <input type="text" id="username" placeholder="Benutzername eingeben" />
-    <input type="text" id="room-input" placeholder="Raumname" />
-    <button id="join-button">Raum beitreten</button>
+  <!-- Theme Toggle Button -->
+  <button id="theme-toggle" class="theme-toggle" aria-label="Switch to Light Mode">☀️</button>
+  
+  <!-- Swipe Indicator -->
+  <div class="swipe-indicator">
+    <div class="swipe-hint">← Swipe to navigate →</div>
+  </div>
+  
+  <!-- Startmenü -->
+  <div id="start-menu" class="game-container">
+    <h1 class="main-title">Guessing Game</h1>
+    <p class="subtitle">Wähle deinen Spielmodus</p>
+    
+    <div class="game-modes">
+      <div class="game-mode-card" data-mode="football">
+        <div class="mode-icon">⚽</div>
+        <h3>Fußball Imposter</h3>
+        <p>Rate zufällige Fußballspieler aus der Datenbank</p>
+      </div>
+      
+      <div class="game-mode-card" data-mode="gamemaster">
+        <div class="mode-icon">👑</div>
+        <h3>Gamemaster Modus</h3>
+        <p>Ein Spieler wird zum Gamemaster und gibt das Thema vor</p>
+      </div>
+      
+      <div class="game-mode-card disabled" data-mode="ai">
+        <div class="mode-icon">🤖</div>
+        <h3>AI Modus</h3>
+        <p>KI wählt automatisch Begriffe basierend auf einem Thema</p>
+        <span class="coming-soon">Bald verfügbar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fußball Einstellungen -->
+  <div id="football-settings" class="game-container hidden" style="display: none;">
+    <h2>Fußball Imposter Einstellungen</h2>
+    <div class="settings-grid">
+      <div class="setting-group">
+        <label for="difficulty">Schwierigkeitsgrad:</label>
+        <select id="difficulty" class="custom-select">
+          <option value="easy">Einfach (Top 50 Spieler)</option>
+          <option value="medium" selected>Mittel (Top 200 Spieler)</option>
+          <option value="hard">Schwer (Top 500 Spieler)</option>
+        </select>
+      </div>
+    </div>
+    <div class="button-group">
+      <button id="back-to-menu" class="btn btn-secondary">Zurück</button>
+      <button id="continue-football" class="btn btn-primary">Weiter</button>
+    </div>
+  </div>
+
+  <!-- Standard Lobby -->
+  <div id="game-container" class="game-container hidden" style="display: none;">
+    <div class="lobby-header">
+      <h2 id="welcome"></h2>
+      <h4 id="welcome2"></h4>
+    </div>
+    
+    <div class="join-section">
+      <div class="username-input-group">
+        <input type="text" id="username" placeholder="Benutzername eingeben" />
+        <div class="username-status"></div>
+      </div>
+      
+      <div class="room-join-options">
+        <div class="join-option active" data-option="create">
+          <div class="option-icon">🆕</div>
+          <h3>Neuen Raum erstellen</h3>
+          <p>Erstelle einen neuen Raum mit einem zufälligen Code</p>
+        </div>
+        
+        <div class="join-option" data-option="join">
+          <div class="option-icon">🔗</div>
+          <h3>Raum beitreten</h3>
+          <p>Trete einem bestehenden Raum bei</p>
+        </div>
+      </div>
+      
+      <div class="room-input-section">
+        <div id="create-room-section" class="input-section">
+          <button id="create-room-button" class="btn btn-primary">
+            <span class="btn-icon">🎮</span>
+            Raum erstellen
+          </button>
+        </div>
+        
+        <div id="join-room-section" class="input-section" style="display: none;">
+          <div class="room-code-input">
+            <input type="text" id="room-code-input" placeholder="Raumcode eingeben (z.B. ABC123)" maxlength="6" />
+            <button id="join-room-button" class="btn btn-primary">
+              <span class="btn-icon">🚪</span>
+              Beitreten
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div id="result"></div>
+
+    <!-- Room Info Display -->
+    <div id="room-info" class="room-info" style="display: none;">
+      <div class="room-code-display">
+        <h3>Raum Code</h3>
+        <div class="code-container">
+          <span id="room-code-text"></span>
+          <button id="copy-code-btn" class="copy-btn" title="Code kopieren">📋</button>
+        </div>
+        <p class="share-text">Teile diesen Code mit deinen Freunden!</p>
+      </div>
+      
+      <div class="quick-share">
+        <h4>Schnell teilen</h4>
+        <div class="share-buttons">
+          <button id="share-whatsapp" class="share-btn whatsapp">📱 WhatsApp</button>
+          <button id="share-copy-link" class="share-btn copy">🔗 Link kopieren</button>
+        </div>
+      </div>
+    </div>
 
     <div id="host-controls" style="display: none">
       <input type="text" id="topic-input" placeholder="Gib hier das Thema ein" />
       <button id="start-game-button">Spiel starten</button>
+      
+      <!-- Test Button für Demo/Entwicklung -->
+      <button id="test-game-over" class="btn btn-secondary" onclick="showGameOver()" style="margin-top: 10px;">
+        🧪 Test Game Over (Demo)
+      </button>
+      
       <div class="players-container">
         <h3>Spieler im Raum</h3>
         <ul id="playersList"></ul>
       </div>
     </div>
+
+    <!-- Game Over Controls -->
+    <div id="game-over-controls" class="game-over-section" style="display: none">
+      <h3>🎉 Spiel beendet!</h3>
+      <div class="game-over-stats" id="game-stats">
+        <!-- Game statistics will be displayed here -->
+      </div>
+      <div class="button-group">
+        <button id="new-round-button" class="btn btn-primary">
+          <span class="btn-icon">🔄</span>
+          Neue Runde starten
+        </button>
+        <button id="leave-room-button" class="btn btn-secondary">
+          <span class="btn-icon">🚪</span>
+          Raum verlassen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Achievement System -->
+  <div id="achievement-overlay" class="achievement-overlay">
+    <div class="achievement-card">
+      <div class="achievement-icon">🏆</div>
+      <div class="achievement-content">
+        <h3 class="achievement-title"></h3>
+        <p class="achievement-description"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- XP Notification -->
+  <div id="xp-notification" class="xp-notification">
+    <div class="xp-content">
+      <span class="xp-text">+50 XP</span>
+      <div class="xp-bar">
+        <div class="xp-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Chat -->
+  <div id="live-chat" class="live-chat" style="display: none;">
+    <div class="chat-header">
+      <h4>Live Chat</h4>
+      <button id="toggle-chat" class="chat-toggle">💬</button>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input">
+      <input type="text" id="chat-input" placeholder="Nachricht eingeben..." maxlength="200" />
+      <button id="send-chat" class="btn-send">📤</button>
+    </div>
+  </div>
+
+  <!-- Particle System -->
+  <div id="particle-system" class="particle-system"></div>
+
+  <!-- 3D Background Elements -->
+  <div class="background-3d">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
