@@ -820,6 +820,27 @@ socket.on('message', (message) => {
     
     // Also show as notification temporarily
     showNotification(message, 'info');
+  } else if (message.startsWith('Das Thema ist: ')) {
+    // Extract the topic name for gamemaster mode
+    const topicName = message.replace('Das Thema ist: ', '');
+    
+    // Show in result div permanently
+    const resultDiv = document.getElementById('result');
+    if (resultDiv) {
+      resultDiv.innerHTML = `
+        <div class="gamemaster-topic-display">
+          <div class="topic-icon">🎯</div>
+          <div class="topic-info">
+            <h3>Das Thema</h3>
+            <div class="topic-name">${topicName}</div>
+          </div>
+        </div>
+      `;
+      resultDiv.style.display = 'block';
+    }
+    
+    // Also show as notification temporarily
+    showNotification(message, 'info');
   } else {
     // For all other messages, just show notification
     showNotification(message, 'info');

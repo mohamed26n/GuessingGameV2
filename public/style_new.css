@@ -802,6 +802,52 @@ body.imposter {
   }
 }
 
+/* ===== GAMEMASTER TOPIC DISPLAY ===== */
+.gamemaster-topic-display {
+  background: linear-gradient(135deg, var(--gamemaster-color), #d97706);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.3);
+  margin: 20px 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.gamemaster-topic-display .topic-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.gamemaster-topic-display .topic-info h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gamemaster-topic-display .topic-name {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+  .gamemaster-topic-display .topic-name {
+    font-size: 1.6rem;
+  }
+  
+  .gamemaster-topic-display .topic-icon {
+    font-size: 2.5rem;
+  }
+}
+
 /* ===== MOBILE FIRST RESPONSIVE DESIGN ===== */
 /* Mobile Base Styles (already applied above) */
 
