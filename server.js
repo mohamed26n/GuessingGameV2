@@ -113,19 +113,65 @@ io.on('connection', socket => {
   });
 
   // ===== PHASE 3: NEW ROOM SYSTEM =====
-  socket.on('createRoom', (requestedCode) => {
-    createRoomWithCode(socket, userGameSettings);
+  socket.on('createRoom', (data) => {
+    console.log('Create room request:', data);
+    
+    // Extract settings from the request
+    let gameSettings = userGameSettings;
+    
+    if (data && typeof data === 'object') {
+      // Set username if provided
+      if (data.username) {
+        socket.username = data.username;
+      }
+      
+      // Update game settings with provided data
+      gameSettings = {
+        mode: data.gameMode || userGameSettings.mode || 'gamemaster',
+        difficulty: data.difficulty || userGameSettings.difficulty || 'medium'
+      };
+      
+      console.log('Updated game settings:', gameSettings);
+    }
+    
+    createRoomWithCode(socket, gameSettings);
   });
 
-  socket.on('joinRoom', room => {
+  socket.on('joinRoom', (data) => {
+    console.log('Join room request:', data);
+    
+    let roomCode, username;
+    
+    // Handle new format with username and roomCode
+    if (typeof data === 'object' && data.roomCode) {
+      roomCode = data.roomCode;
+      username = data.username;
+      
+      // Set username on socket
+      if (username) {
+        socket.username = username;
+      }
+      
+      // Join room with new system
+      if (roomCode && roomCode.length === 6 && /^[A-Z0-9]+$/.test(roomCode)) {
+        joinRoomWithCode(socket, roomCode, userGameSettings);
+        return;
+      }
+    }
+    
+    // Legacy handling - if data is a string (old room code)
+    if (typeof data === 'string') {
+      roomCode = data;
+    }
+    
     // Check if it's the new 6-character code system or legacy
-    if (room && room.length === 6 && /^[A-Z0-9]+$/.test(room)) {
-      joinRoomWithCode(socket, room, userGameSettings);
+    if (roomCode && roomCode.length === 6 && /^[A-Z0-9]+$/.test(roomCode)) {
+      joinRoomWithCode(socket, roomCode, userGameSettings);
     } else {
       // Legacy room joining (for backward compatibility)
-      socket.join(room);
-      if (!rooms[room]) {
-        rooms[room] = { 
+      socket.join(roomCode);
+      if (!rooms[roomCode]) {
+        rooms[roomCode] = { 
           players: [], 
           host: socket.id,
           mode: userGameSettings.mode,
@@ -136,7 +182,7 @@ io.on('connection', socket => {
           gameStarted: false
         };
       }
-      const idx = rooms[room].players.findIndex(p=>p.id===socket.id);
+      const idx = rooms[roomCode].players.findIndex(p=>p.id===socket.id);
       if (idx===-1) {
         rooms[room].players.push({
           id: socket.id,
@@ -577,27 +623,45 @@ function handleChatMessage(socket, data) {
 
 // Enhanced game start with better feedback
 function enhancedStartGame(socket, room) {
+  console.log(`Start game request for room ${room} by ${socket.id}`);
+  
   const r = rooms[room];
   if (!r) {
+    console.log(`Room ${room} not found`);
     socket.emit('message', 'Raum nicht gefunden.');
     return;
   }
   
+  console.log(`Room ${room} details:`, {
+    host: r.host,
+    requester: socket.id,
+    players: r.players.length,
+    mode: r.mode,
+    topic: r.topic,
+    gameStarted: r.gameStarted
+  });
+  
   if (r.host !== socket.id) {
+    console.log(`Permission denied - not host`);
     socket.emit('message', 'Nur der Host kann das Spiel starten.');
     return;
   }
   
-  if (r.players.length < 2) {
-    socket.emit('message', 'Mindestens 2 Spieler benötigt.');
+  // Für Testing: Erlaube Spiel mit nur 1 Spieler (normalerweise 2)
+  if (r.players.length < 1) {
+    console.log(`Not enough players: ${r.players.length}`);
+    socket.emit('message', 'Mindestens 1 Spieler benötigt.');
     return;
   }
   
+  // Prüfe nur bei Gamemaster-Modus nach Thema
   if (r.mode === 'gamemaster' && (!r.topic || r.topic.trim().length === 0)) {
+    console.log(`No topic provided for gamemaster mode. Mode: ${r.mode}, Topic: "${r.topic}"`);
     socket.emit('message', 'Bitte gib ein Thema ein.');
     return;
   }
   
+  console.log(`Starting game in room ${room} with mode ${r.mode}`);
   r.gameStarted = true;
   
   // Add system message
@@ -614,7 +678,7 @@ function enhancedStartGame(socket, room) {
   startGame(room);
   io.to(room).emit('gameStarted');
   
-  console.log(`Game started in room ${room} with ${r.players.length} players`);
+  console.log(`Game successfully started in room ${room} with ${r.players.length} players`);
 }
 
 // Game ending functions

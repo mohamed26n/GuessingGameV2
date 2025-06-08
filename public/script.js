@@ -368,8 +368,10 @@ function hideAllScreens() {
   });
 }
 
-// Startmenü Event Listeners
+// Hauptmenü Event Listeners - ALLE INITIALISIERUNGEN IN EINER FUNKTION
 document.addEventListener("DOMContentLoaded", () => {
+  console.log('Initializing app...');
+  
   // Initialize Theme
   initializeTheme();
   
@@ -379,8 +381,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Enhance card effects
   enhanceCardEffects();
   
-  // Initialize Chat
+  // Initialize Chat - WICHTIG FÜR CHAT-SICHTBARKEIT
   initializeChat();
+  
+  // Note: setupShareButtons() wird aufgerufen, wenn ein Raumcode verfügbar ist
   
   // Check URL parameters for auto-join
   checkUrlParameters();
@@ -427,28 +431,356 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Fußball-Einstellungen
-  document.getElementById('back-to-menu').addEventListener('click', () => {
-    showStartMenu();
-  });
-
-  document.getElementById('continue-football').addEventListener('click', () => {
-    const difficulty = document.getElementById('difficulty').value;
-    gameSettings.difficulty = difficulty;
-    startLobby();
-  });
-
-  // Typing-Effekt für Lobby - entfernt, da startLobby() bereits Typing-Effekt hat
-  function startTypingEffect() {
-    // Dieser wird nicht mehr verwendet, da startLobby() bereits den Typing-Effekt handhabt
-    console.log('Typing effect handled by startLobby()');
+  const backToMenuBtn = document.getElementById('back-to-menu');
+  if (backToMenuBtn) {
+    backToMenuBtn.addEventListener('click', () => {
+      showStartMenu();
+    });
   }
+
+  const continueFootballBtn = document.getElementById('continue-football');
+  if (continueFootballBtn) {
+    continueFootballBtn.addEventListener('click', () => {
+      const difficulty = document.getElementById('difficulty').value;
+      gameSettings.difficulty = difficulty;
+      startLobby();
+    });
+  }
+
+  // Setup lobby event listeners
+  setupLobbyEventListeners();
+  
+  // Setup alle Join/Create Event Listeners
+  setupJoinCreateEventListeners();
+  
+  // Setup Start Game Button
+  setupStartGameButton();
 
   // Starte mit Startmenü
   showStartMenu();
+  
+  console.log('App initialization complete');
 });
 
+// Hilfsfunktion um Chat sichtbar zu machen, falls er versteckt ist
+function showChatIfHidden() {
+  const liveChat = document.getElementById('live-chat');
+  const chatToggle = document.getElementById('toggle-chat');
+  
+  if (liveChat && chatToggle) {
+    // Stelle sicher, dass der Chat sichtbar ist
+    liveChat.style.display = 'block';
+    
+    // Chat-Toggle Button sichtbar machen
+    chatToggle.style.display = 'block';
+    
+    console.log('Chat visibility ensured');
+  }
+}
 
-// ===== LEGACY FUNCTIONS (COMPATIBILITY) =====
+// Setup lobby event listeners
+function setupLobbyEventListeners() {
+  // Room option selection (Create vs Join)
+  document.querySelectorAll('.join-option').forEach(option => {
+    option.addEventListener('click', () => {
+      // Remove active class from all options
+      document.querySelectorAll('.join-option').forEach(opt => opt.classList.remove('active'));
+      
+      // Add active class to clicked option
+      option.classList.add('active');
+      
+      // Show/hide appropriate sections
+      const selectedOption = option.dataset.option;
+      const createSection = document.getElementById('create-room-section');
+      const joinSection = document.getElementById('join-room-section');
+      
+      if (selectedOption === 'create') {
+        createSection.style.display = 'block';
+        joinSection.style.display = 'none';
+      } else if (selectedOption === 'join') {
+        createSection.style.display = 'none';
+        joinSection.style.display = 'block';
+        
+        // Focus the room code input
+        const roomCodeInput = document.getElementById('room-code-input');
+        if (roomCodeInput) {
+          setTimeout(() => roomCodeInput.focus(), 100);
+        }
+      }
+    });
+  });
+  
+  // Create room button
+  const createRoomBtn = document.getElementById('create-room-button');
+  if (createRoomBtn) {
+    createRoomBtn.addEventListener('click', () => {
+      const usernameInput = document.getElementById('username');
+      const username = usernameInput ? usernameInput.value.trim() : '';
+      
+      if (!username) {
+        showNotification('Bitte gib einen Benutzernamen ein!', 'error');
+        if (usernameInput) usernameInput.focus();
+        return;
+      }
+      
+      // Disable button to prevent double clicks
+      createRoomBtn.disabled = true;
+      createRoomBtn.textContent = 'Erstelle Raum...';
+      
+      // Emit create room event
+      socket.emit('createRoom', { 
+        username: username,
+        gameMode: gameSettings.mode || 'gamemaster',
+        difficulty: gameSettings.difficulty || 'medium'
+      });
+      
+      // Re-enable button after timeout
+      setTimeout(() => {
+        createRoomBtn.disabled = false;
+        createRoomBtn.innerHTML = '<span class="btn-icon">🎮</span> Raum erstellen';
+      }, 3000);
+    });
+  }
+  
+  // Join room button
+  const joinRoomBtn = document.getElementById('join-room-button');
+  if (joinRoomBtn) {
+    joinRoomBtn.addEventListener('click', () => {
+      const usernameInput = document.getElementById('username');
+      const roomCodeInput = document.getElementById('room-code-input');
+      
+      const username = usernameInput ? usernameInput.value.trim() : '';
+      const roomCode = roomCodeInput ? roomCodeInput.value.trim().toUpperCase() : '';
+      
+      if (!username) {
+        showNotification('Bitte gib einen Benutzernamen ein!', 'error');
+        if (usernameInput) usernameInput.focus();
+        return;
+      }
+      
+      if (!roomCode || roomCode.length !== 6) {
+        showNotification('Bitte gib einen gültigen 6-stelligen Raumcode ein!', 'error');
+        if (roomCodeInput) roomCodeInput.focus();
+        return;
+      }
+      
+      // Disable button to prevent double clicks
+      joinRoomBtn.disabled = true;
+      joinRoomBtn.textContent = 'Trete bei...';
+      
+      // Emit join room event
+      socket.emit('joinRoom', { 
+        username: username,
+        roomCode: roomCode
+      });
+      
+      // Re-enable button after timeout
+      setTimeout(() => {
+        joinRoomBtn.disabled = false;
+        joinRoomBtn.innerHTML = '<span class="btn-icon">🚪</span> Beitreten';
+      }, 3000);
+    });
+  }
+  
+  // Room code input formatting
+  const roomCodeInput = document.getElementById('room-code-input');
+  if (roomCodeInput) {
+    roomCodeInput.addEventListener('input', (e) => {
+      // Convert to uppercase and limit to 6 characters
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
+    });
+    
+    // Handle Enter key
+    roomCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        joinRoomBtn.click();
+      }
+    });
+  }
+  
+  // Username input handling
+  const usernameInput = document.getElementById('username');
+  if (usernameInput) {
+    usernameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        // Check which section is active
+        const createSection = document.getElementById('create-room-section');
+        const joinSection = document.getElementById('join-room-section');
+        
+        if (createSection && createSection.style.display !== 'none') {
+          createRoomBtn.click();
+        } else if (joinSection && joinSection.style.display !== 'none') {
+          const roomCodeInput = document.getElementById('room-code-input');
+          if (roomCodeInput && roomCodeInput.value.trim()) {
+            joinRoomBtn.click();
+          } else if (roomCodeInput) {
+            roomCodeInput.focus();
+          }
+        }
+      }
+    });
+  }
+  
+  // Copy room code button
+  const copyCodeBtn = document.getElementById('copy-code-btn');
+  if (copyCodeBtn) {
+    copyCodeBtn.addEventListener('click', () => {
+      const roomCodeText = document.getElementById('room-code-text');
+      if (roomCodeText && roomCodeText.textContent) {
+        navigator.clipboard.writeText(roomCodeText.textContent).then(() => {
+          copyCodeBtn.textContent = '✅';
+          setTimeout(() => {
+            copyCodeBtn.textContent = '📋';
+          }, 2000);
+          showNotification('Raumcode kopiert!', 'success');
+        }).catch(() => {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = roomCodeText.textContent;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          
+          copyCodeBtn.textContent = '✅';
+          setTimeout(() => {
+            copyCodeBtn.textContent = '📋';
+          }, 2000);
+          showNotification('Raumcode kopiert!', 'success');
+        });
+      }
+    });
+  }
+
+  // Join/Create Option Buttons korrekt initialisieren
+  const joinOption = document.querySelector('[data-option="join"]');
+  const createOption = document.querySelector('[data-option="create"]');
+  const joinSection = document.getElementById('join-room-section');
+  const createSection = document.getElementById('create-room-section');
+
+  if (joinOption && createOption && joinSection && createSection) {
+    joinOption.addEventListener('click', () => {
+      joinOption.classList.add('active');
+      createOption.classList.remove('active');
+      joinSection.style.display = 'block';
+      createSection.style.display = 'none';
+    });
+    createOption.addEventListener('click', () => {
+      createOption.classList.add('active');
+      joinOption.classList.remove('active');
+      createSection.style.display = 'block';
+      joinSection.style.display = 'none';
+    });
+  }
+}
+
+// Socket Event Handlers für Raum-Management
+socket.on('roomCreated', (data) => {
+  console.log('Room created:', data);
+  roomCode = data.code;
+  isHost = data.isHost;
+  
+  // Zeige Raumcode an
+  const roomCodeText = document.getElementById('room-code-text');
+  if (roomCodeText) {
+    roomCodeText.textContent = roomCode;
+  }
+  
+  // Zeige Room-Info Container
+  const roomInfo = document.getElementById('room-info');
+  if (roomInfo) {
+    roomInfo.style.display = 'block';
+  }
+  
+  // Setup share buttons mit dem neuen Raumcode
+  setupShareButtons(roomCode);
+  
+  // Minimiere Lobby-Ansicht (verstecke Join/Create-Interface)
+  minimizeLobbyView();
+  
+  // Zeige Host Controls an und konfiguriere Topic-Input entsprechend Spielmodus
+  if (isHost) {
+    const hostControls = document.getElementById('host-controls');
+    if (hostControls) {
+      hostControls.style.display = 'block';
+    }
+    
+    // Topic-Input entsprechend Spielmodus konfigurieren
+    const topicInput = document.getElementById('topic-input');
+    if (topicInput) {
+      if (gameSettings.mode === 'gamemaster') {
+        topicInput.style.display = 'block';
+        topicInput.placeholder = 'Gib hier das Thema ein (z.B. Tiere, Länder, etc.)';
+        console.log('Topic input visible for gamemaster mode');
+      } else if (gameSettings.mode === 'football') {
+        topicInput.style.display = 'none';
+        console.log('Topic input hidden for football mode');
+      }
+    }
+  }
+  
+  // Chat sichtbar machen (falls minimiert)
+  showChatIfHidden();
+  
+  showNotification('Raum erfolgreich erstellt!', 'success');
+});
+
+socket.on('roomJoined', (data) => {
+  console.log('Room joined:', data);
+  roomCode = data.code;
+  isHost = data.isHost || false;
+  
+  // Zeige Raumcode an
+  const roomCodeText = document.getElementById('room-code-text');
+  if (roomCodeText) {
+    roomCodeText.textContent = roomCode;
+  }
+  
+  // Zeige Room-Info Container
+  const roomInfo = document.getElementById('room-info');
+  if (roomInfo) {
+    roomInfo.style.display = 'block';
+  }
+  
+  // Setup share buttons mit dem Raumcode
+  setupShareButtons(roomCode);
+  
+  // Minimiere Lobby-Ansicht
+  minimizeLobbyView();
+  
+  // Chat sichtbar machen
+  showChatIfHidden();
+  
+  showNotification('Raum erfolgreich beigetreten!', 'success');
+});
+
+socket.on('roomError', (data) => {
+  console.error('Room error:', data);
+  showNotification(data.message || 'Fehler beim Beitreten zum Raum', 'error');
+  
+  // Re-enable buttons
+  const joinRoomBtn = document.getElementById('join-room-button');
+  const createRoomBtn = document.getElementById('create-room-button');
+  
+  if (joinRoomBtn) {
+    joinRoomBtn.disabled = false;
+    joinRoomBtn.innerHTML = '<span class="btn-icon">🚪</span> Beitreten';
+  }
+  
+  if (createRoomBtn) {
+    createRoomBtn.disabled = false;
+    createRoomBtn.innerHTML = '<span class="btn-icon">🎮</span> Raum erstellen';
+  }
+});
+
+// Socket Event Handlers für Raum-Management
+socket.on('message', (message) => {
+  console.log('Server message:', message);
+  showNotification(message, 'info');
+});
+
 function selectGameMode(mode) {
   gameSettings.mode = mode;
   
@@ -530,41 +862,75 @@ function startLobby() {
 
 // Function to hide lobby elements when room is joined/created
 function minimizeLobbyView() {
+  console.log('Minimizing lobby view...');
+  
   // Hide welcome messages
   const lobbyHeader = document.querySelector('.lobby-header');
-  if (lobbyHeader) lobbyHeader.style.display = 'none';
+  if (lobbyHeader) {
+    lobbyHeader.style.display = 'none';
+    console.log('Hidden lobby header');
+  }
   
   // Hide join section (username input and room creation/join options)
   const joinSection = document.querySelector('.join-section');
-  if (joinSection) joinSection.style.display = 'none';
+  if (joinSection) {
+    joinSection.style.display = 'none';
+    console.log('Hidden join section');
+  }
   
   // Hide specific welcome elements
   const welcomeElements = document.querySelectorAll('#welcome, #welcome2');
   welcomeElements.forEach(el => {
-    if (el) el.style.display = 'none';
+    if (el) {
+      el.style.display = 'none';
+      console.log('Hidden welcome element');
+    }
   });
   
   // Hide username input field
   const usernameField = document.getElementById('username');
   if (usernameField && usernameField.parentElement) {
     usernameField.parentElement.style.display = 'none';
+    console.log('Hidden username field');
   }
   
   // Hide join/create buttons
   const joinOptions = document.querySelectorAll('.join-option');
   joinOptions.forEach(option => {
-    if (option) option.style.display = 'none';
+    if (option) {
+      option.style.display = 'none';  
+      console.log('Hidden join option');
+    }
   });
   
   // Hide room input sections
   const roomSections = document.querySelectorAll('#create-room-section, #join-room-section');
   roomSections.forEach(section => {
-    if (section) section.style.display = 'none';
+    if (section) {
+      section.style.display = 'none';
+      console.log('Hidden room section');
+    }
   });
   
-  // Don't hide result div during game - it shows the football player name or topic
-  // const resultDiv = document.getElementById('result');
-  // if (resultDiv) resultDiv.style.display = 'none';
+  // WICHTIG: Room-Info und Chat-Elemente NICHT verstecken
+  const roomInfo = document.getElementById('room-info');
+  const liveChat = document.getElementById('live-chat');
+  const chatToggle = document.getElementById('toggle-chat');
+  
+  if (roomInfo) {
+    roomInfo.style.display = 'block';
+    console.log('Ensured room-info is visible');
+  }
+  
+  if (liveChat) {
+    liveChat.style.display = 'block';
+    console.log('Ensured live-chat is visible');
+  }
+  
+  if (chatToggle) {
+    chatToggle.style.display = 'block';
+    console.log('Ensured chat-toggle is visible');
+  }
   
   // Add a minimized state class to the game container
   const gameContainer = document.getElementById('game-container');
@@ -644,443 +1010,215 @@ socket.on('host', receivedIsHost => {
   }
 });
 
-// Start-Button: Thema oder Fallback
-document.addEventListener('DOMContentLoaded', function() {
+// Separate Funktion für Join/Create Event Listeners
+function setupJoinCreateEventListeners() {
+  console.log('Setting up Join/Create event listeners...');
+  
+  // Event Listener für Join/Create-Optionen (mobile und desktop)
+  const joinOption = document.querySelector('[data-option="join"]');
+  const createOption = document.querySelector('[data-option="create"]');
+  const joinSection = document.getElementById('join-room-section');
+  const createSection = document.getElementById('create-room-section');
+
+  if (joinOption && createOption && joinSection && createSection) {
+    console.log('Join/Create options found, attaching listeners...');
+    
+    joinOption.addEventListener('click', () => {
+      console.log('Join option clicked');
+      joinOption.classList.add('active');
+      createOption.classList.remove('active');
+      joinSection.style.display = 'block';
+      createSection.style.display = 'none';
+    });
+    
+    createOption.addEventListener('click', () => {
+      console.log('Create option clicked');
+      createOption.classList.add('active');
+      joinOption.classList.remove('active');
+      createSection.style.display = 'block';
+      joinSection.style.display = 'none';
+    });
+  } else {
+    console.warn('Join/Create options not found!');
+  }
+}
+
+// Separate Funktion für Start Game Button
+function setupStartGameButton() {
+  console.log('Setting up Start Game button...');
+  
   const startGameButton = document.getElementById('start-game-button');
   if (startGameButton) {
+    console.log('Start game button found, attaching listener...');
+    
     startGameButton.addEventListener('click', () => {
-      const room = roomCode || document.getElementById('room-input')?.value;
-      const topic = document.getElementById('topic-input').value.trim();
+      console.log('Start game button clicked');
+      console.log('Current roomCode:', roomCode);
+      console.log('Current gameSettings:', gameSettings);
+      
+      if (!roomCode) {
+        showNotification('Fehler: Kein Raumcode verfügbar!', 'error');
+        console.error('No room code available');
+        return;
+      }
+      
+      const topic = document.getElementById('topic-input')?.value?.trim();
+      
+      // Prüfe aktuellen Spielmodus
+      console.log('Game mode check:', gameSettings.mode);
       
       // Im Gamemaster-Modus wird das Thema immer vom Host gesetzt
       if (gameSettings.mode === 'gamemaster') {
         if (!topic) {
-          showErrorMessage('Bitte gib ein Thema ein!');
+          showNotification('Bitte gib ein Thema ein!', 'error');
           triggerHapticFeedback('error');
+          // Focus das Topic-Input-Feld
+          const topicInput = document.getElementById('topic-input');
+          if (topicInput) topicInput.focus();
           return;
         }
-        socket.emit('setTopic', room, topic);
+        console.log('Setting topic for gamemaster mode:', topic);
+        socket.emit('setTopic', roomCode, topic);
       } else if (gameSettings.mode === 'football') {
         // Im Fußball-Modus wird das Topic-Feld ausgeblendet/ignoriert
-        socket.emit('setTopic', room, null); // Kein spezifisches Thema
+        console.log('Football mode - no topic needed');
+        socket.emit('setTopic', roomCode, null); // Kein spezifisches Thema
+      } else {
+        // Fallback für andere Modi
+        console.log('Unknown mode, defaulting to no topic');
+        socket.emit('setTopic', roomCode, null);
       }
       
-      socket.emit('startGame', room);
+      console.log('Starting game for room:', roomCode);
+      socket.emit('startGame', roomCode);
       triggerHapticFeedback('success');
+      
+      // Disable button to prevent double-clicks
+      startGameButton.disabled = true;
+      startGameButton.textContent = 'Spiel wird gestartet...';
+      
+      // Re-enable after timeout (fallback)
+      setTimeout(() => {
+        startGameButton.disabled = false;
+        startGameButton.textContent = 'Spiel starten';
+      }, 5000);
     });
-  }
-});
-
-// Auto-join from URL parameter
-if (window.autoJoinRoomCode) {
-  console.log('Auto-joining room:', window.autoJoinRoomCode);
-  
-  // Show game container directly and set join mode
-  startLobby();
-  
-  // Set join option to active
-  const joinOption = document.querySelector('.join-option[data-option="join"]');
-  const createOption = document.querySelector('.join-option[data-option="create"]');
-  const createSection = document.getElementById('create-room-section');
-  const joinSection = document.getElementById('join-room-section');
-  
-  if (joinOption && createOption && createSection && joinSection) {
-    createOption.classList.remove('active');
-    joinOption.classList.add('active');
-    createSection.style.display = 'none';
-    joinSection.style.display = 'block';
-  }
-  
-  // Pre-fill room code
-  const roomCodeInput = document.getElementById('room-code-input');
-  if (roomCodeInput) {
-    roomCodeInput.value = window.autoJoinRoomCode;
-  }
-  
-  // Show helpful message - nur wenn wir nicht bereits im Lobby-Modus sind
-  const welcomeElement = document.getElementById('welcome2');
-  const gameContainer = document.getElementById('game-container');
-  
-  // Nur das welcome2 Element ändern, wenn wir noch nicht in der Lobby sind
-  if (welcomeElement && gameContainer && gameContainer.style.display === 'none') {
-    welcomeElement.innerHTML = `Gib deinen Namen ein und tritt Raum ${window.autoJoinRoomCode} bei!`;
+  } else {
+    console.warn('Start game button not found!');
   }
 }
 
-// Imposter-Status mit verbesserten Hintergründen
-socket.on('imposterStatus', (isImposter) => {
-  if (isImposter) {
-    console.log('Imposter reached');
-    document.body.classList.add('imposter');
-    document.body.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg id=\'visual\' viewBox=\'0 0 900 600\' width=\'900\' height=\'600\' xmlns=\'http://www.w3.org/2000/svg\' xmlns:xlink=\'http://www.w3.org/1999/xlink\' version=\'1.1\'%3E%3Crect x=\'0\' y=\'0\' width=\'900\' height=\'600\' fill=\'%23001220\'%3E%3C/rect%3E%3Cdefs%3E%3ClinearGradient id=\'grad1_0\' x1=\'33.3%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'20%25\' stop-color=\'%23001220\' stop-opacity=\'1\'%3E%3C/stop%3E%3Cstop offset=\'80%25\' stop-color=\'%23001220\' stop-opacity=\'1\'%3E%3C/stop%3E%3C/linearGradient%3E%3C/defs%3E%3Cdefs%3E%3ClinearGradient id=\'grad2_0\' x1=\'0%25\' y1=\'0%25\' x2=\'66.7%25\' y2=\'100%25\'%3E%3Cstop offset=\'20%25\' stop-color=\'%23001220\' stop-opacity=\'1\'%3E%3C/stop%3E%3Cstop offset=\'80%25\' stop-color=\'%23001220\' stop-opacity=\'1\'%3E%3C/stop%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform=\'translate(900, 0)\'%3E%3Cpath d=\'M0 270.4C-38.9 270.4 -77.7 270.4 -103.5 249.8C-129.3 229.3 -142 188.2 -159.8 159.8C-177.6 131.4 -200.6 115.6 -219.9 91.1C-239.2 66.6 -254.8 33.3 -270.4 0L0 0Z\' fill=\'%23d01829\'%3E%3C/path%3E%3C/g%3E%3Cg transform=\'translate(0, 600)\'%3E%3Cpath d=\'M0 -270.4C37.2 -268.2 74.4 -265.9 103.5 -249.8C132.6 -233.8 153.7 -203.8 178.2 -178.2C202.7 -152.5 230.7 -131.2 246.7 -102.2C262.6 -73.2 266.5 -36.6 270.4 0L0 0Z\' fill=\'%23d01829\'%3E%3C/path%3E%3C/g%3E%3C/svg%3E")';
-    addXP(30, 'Imposter geworden');
-    showAchievement('Imposter!', 'Du bist der Imposter! 🎭');
-    triggerHapticFeedback('heavy');
-  } else {
-    console.log('Not Imposter');
-    document.body.classList.remove('imposter');
-    document.body.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg id=\'visual\' viewBox=\'0 0 900 600\' width=\'900\' height=\'600\' xmlns=\'http://www.w3.org/2000/svg\' xmlns:xlink=\'http://www.w3.org/1999/xlink\' version=\'1.1\'%3E%3Crect x=\'0\' y=\'0\' width=\'900\' height=\'600\' fill=\'%23001220\'%3E%3C/rect%3E%3Cdefs%3E%3ClinearGradient id=\'grad1_0\' x1=\'33.3%25\' y1=\'0%25\' x2=\'100%25\' y2=\'100%25\'%3E%3Cstop offset=\'20%25\' stop-color=\'%23001220\' stop-opacity=\'1\'%3E%3C/stop%3E%3Cstop offset=\'80%25\' stop-color=\'%23001220\' stop-opacity=\'1\'%3E%3C/stop%3E%3C/linearGradient%3E%3C/defs%3E%3Cdefs%3E%3ClinearGradient id=\'grad2_0\' x1=\'0%25\' y1=\'0%25\' x2=\'66.7%25\' y2=\'100%25\'%3E%3Cstop offset=\'20%25\' stop-color=\'%23001220\' stop-opacity=\'1\'%3E%3C/stop%3E%3Cstop offset=\'80%25\' stop-color=\'%23001220\' stop-opacity=\'1\'%3E%3C/stop%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform=\'translate(900, 0)\'%3E%3Cpath d=\'M0 270.4C-38.9 270.4 -77.7 270.4 -103.5 249.8C-129.3 229.3 -142 188.2 -159.8 159.8C-177.6 131.4 -200.6 115.6 -219.9 91.1C-239.2 66.6 -254.8 33.3 -270.4 0L0 0Z\' fill=\'%236bd764\'%3E%3C/path%3E%3C/g%3E%3Cg transform=\'translate(0, 600)\'%3E%3Cpath d=\'M0 -270.4C37.2 -268.2 74.4 -265.9 103.5 -249.8C132.6 -233.8 153.7 -203.8 178.2 -178.2C202.7 -152.5 230.7 -131.2 246.7 -102.2C262.6 -73.2 266.5 -36.6 270.4 0L0 0Z\' fill=\'%236bd764\'%3E%3C/path%3E%3C/g%3E%3C/svg%3E")';
-    addXP(20, 'Normaler Spieler');
-    triggerHapticFeedback('success');
-  }
-  document.body.style.opacity = 0;
-  setTimeout(() => document.body.style.opacity = 1, 50);
-});
-
-// Nachrichten
-socket.on('message', msg => {
-  document.getElementById('result').innerHTML = `<p>${msg}</p>`;
-});
-
-// Spieler-Liste
-socket.on('updatePlayersList', players => {
-  const ul = document.getElementById('playersList');
-  ul.innerHTML = '';
-  players.forEach((p,i) => {
-    const li = document.createElement('li');
-    li.textContent = `${i+1}. ${p.username || 'Unbenannter Spieler'}`;
-    ul.appendChild(li);
-  });
-});
-
-// ===== MAIN INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize theme
-  initializeTheme();
+// Check URL parameters for direct room joining
+function checkUrlParameters() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomCodeFromUrl = urlParams.get('room');
   
-  // Room System Event Listeners
-  const createRoomBtn = document.getElementById('create-room-button');
-  const joinRoomBtn = document.getElementById('join-room-button');
-  const joinOptions = document.querySelectorAll('.join-option');
-  const roomCodeInput = document.getElementById('room-code-input');
-  
-  // Join Option Toggle
-  joinOptions.forEach(option => {
-    option.addEventListener('click', () => {
-      joinOptions.forEach(opt => opt.classList.remove('active'));
-      option.classList.add('active');
+  if (roomCodeFromUrl && roomCodeFromUrl.length === 6) {
+    // Set the auto-join flag
+    window.autoJoinRoomCode = roomCodeFromUrl.toUpperCase();
+    
+    // Navigate to lobby and pre-fill room code
+    setTimeout(() => {
+      startLobby();
       
-      const optionType = option.dataset.option;
-      const createSection = document.getElementById('create-room-section');
+      // Switch to join room option
+      const joinOption = document.querySelector('[data-option="join"]');
+      const createOption = document.querySelector('[data-option="create"]');
       const joinSection = document.getElementById('join-room-section');
+      const createSection = document.getElementById('create-room-section');
+      const roomCodeInput = document.getElementById('room-code-input');
       
-      if (optionType === 'create') {
-        createSection.style.display = 'block';
-        joinSection.style.display = 'none';
-      } else {
+      if (joinOption && createOption && joinSection && createSection && roomCodeInput) {
+        // Update active option
+        createOption.classList.remove('active');
+        joinOption.classList.add('active');
+        
+        // Show join section, hide create section
         createSection.style.display = 'none';
         joinSection.style.display = 'block';
-      }
-    });
-  });
-  
-  // Create Room Event
-  if (createRoomBtn) {
-    createRoomBtn.addEventListener('click', () => {
-      const username = document.getElementById('username').value.trim();
-      if (!username) {
-        alert('Bitte gib einen Benutzernamen ein!');
-        return;
-      }
-      
-      // Set username first
-      socket.emit('setUsername', username);
-      
-      // Set game settings
-      socket.emit('setGameSettings', {
-        mode: gameSettings.mode,
-        difficulty: gameSettings.difficulty
-      });
-      
-      // Create room with current settings
-      socket.emit('createRoom', {
-        mode: gameSettings.mode,
-        difficulty: gameSettings.difficulty
-      });
-      
-      console.log('Creating room with settings:', gameSettings);
-    });
-  }
-  
-  // Join Room Event
-  if (joinRoomBtn) {
-    joinRoomBtn.addEventListener('click', () => {
-      const username = document.getElementById('username').value.trim();
-      const inputRoomCode = roomCodeInput.value.trim().toUpperCase();
-      
-      if (!username) {
-        alert('Bitte gib einen Benutzernamen ein!');
-        return;
-      }
-      
-      if (!inputRoomCode || inputRoomCode.length !== 6) {
-        alert('Bitte gib einen gültigen 6-stelligen Raumcode ein!');
-        return;
-      }
-      
-      // Set username first
-      socket.emit('setUsername', username);
-      
-      // Set game settings
-      socket.emit('setGameSettings', {
-        mode: gameSettings.mode,
-        difficulty: gameSettings.difficulty
-      });
-      
-      // Join room
-      socket.emit('joinRoom', inputRoomCode);
-      
-      roomCode = inputRoomCode;
-      console.log('Joining room:', roomCode);
-    });
-  }
-  
-  // Room code input formatting
-  if (roomCodeInput) {
-    roomCodeInput.addEventListener('input', (e) => {
-      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    });
-  }
-  
-  // Enhanced touch gestures
-  document.addEventListener('touchstart', e => {
-    touchStartX = e.changedTouches[0].screenX;
-    triggerHapticFeedback('light');
-  });
-  
-  document.addEventListener('touchend', e => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipeGesture();
-  });
-  
-  // Theme toggle
-  document.getElementById('theme-toggle').addEventListener('click', () => {
-    toggleTheme();
-    triggerHapticFeedback('medium');
-  });
-  
-  // Enhanced button interactions
-  document.querySelectorAll('.btn, .game-mode-card').forEach(element => {
-    element.addEventListener('click', () => {
-      triggerHapticFeedback('medium');
-    });
-  });
-  
-  // Game mode selection with enhanced effects
-  document.querySelectorAll('.game-mode-card').forEach((card, index) => {
-    card.style.setProperty('--index', index);
-    
-    card.addEventListener('click', function() {
-      if (this.classList.contains('disabled')) {
-        triggerHapticFeedback('error');
-        showErrorMessage('Dieser Modus ist noch nicht verfügbar!');
-        return;
-      }
-      
-      const mode = this.dataset.mode;
-      selectGameMode(mode);
-      triggerHapticFeedback('success');
-      addXP(5, 'Modus gewählt');
-    });
-  });
-
-  // Settings navigation
-  const backToMenuBtn = document.getElementById('back-to-menu');
-  if (backToMenuBtn) {
-    backToMenuBtn.addEventListener('click', () => {
-      showStartMenu();
-      triggerHapticFeedback('light');
-    });
-  }
-  
-  const continueFootballBtn = document.getElementById('continue-football');
-  if (continueFootballBtn) {
-    continueFootballBtn.addEventListener('click', () => {
-      gameSettings.difficulty = document.getElementById('difficulty').value;
-      startLobby();
-      triggerHapticFeedback('success');
-      addXP(5, 'Einstellungen gespeichert');
-    });
-  }
-
-  // New Round and Leave Room Event Listeners
-  const newRoundBtn = document.getElementById('new-round-button');
-  const leaveRoomBtn = document.getElementById('leave-room-button');
-  
-  if (newRoundBtn) {
-    newRoundBtn.addEventListener('click', () => {
-      if (isHost) {
-        socket.emit('startNewRound', roomCode);
-        addXP(10, 'Neue Runde gestartet');
-        console.log('Starting new round in room:', roomCode);
-      } else {
-        alert('Nur der Host kann eine neue Runde starten!');
-      }
-    });
-  }
-  
-  if (leaveRoomBtn) {
-    leaveRoomBtn.addEventListener('click', () => {
-      if (confirm('Möchtest du wirklich den Raum verlassen?')) {
-        socket.emit('leaveRoom', roomCode);
         
-        // Reset game state
-        roomCode = null;
-        isHost = false;
-        gameSettings = { mode: null, difficulty: 'medium' };
+        // Pre-fill room code
+        roomCodeInput.value = window.autoJoinRoomCode;
         
-        // Return to start menu
-        showStartMenu();
+        // Add visual indication
+        roomCodeInput.style.borderColor = '#00ffff';
+        roomCodeInput.style.background = 'rgba(0, 255, 255, 0.1)';
         
-        // Hide game over controls
-        document.getElementById('game-over-controls').style.display = 'none';
-        document.getElementById('host-controls').style.display = 'none';
-        document.getElementById('room-info').style.display = 'none';
-        
-        addXP(5, 'Raum verlassen');
-        console.log('Left room');
-      }
-    });
-  }
-
-  // Start with start menu
-  showStartMenu();
-  
-  // Display initial XP level if available
-  if (gamificationSystem.xp > 0) {
-    setTimeout(() => {
-      showSuccessMessage(`Willkommen zurück! Level ${gamificationSystem.level} (${gamificationSystem.xp} XP)`);
-    }, 1000);
-  }
-  
-  // Add CSS for wave animation (only once)
-  if (!document.getElementById('wave-styles')) {
-    const waveStyles = document.createElement('style');
-    waveStyles.id = 'wave-styles';
-    waveStyles.textContent = `
-      @keyframes waveExpand {
-        to {
-          width: 300px;
-          height: 300px;
-          opacity: 0;
+        // Auto-focus username input first
+        const usernameInput = document.getElementById('username');
+        if (usernameInput) {
+          usernameInput.focus();
+          usernameInput.placeholder = 'Benutzername eingeben und Raum beitreten';
         }
+        
+        // Show notification
+        showNotification('🔗 Link erkannt! Raumcode wurde automatisch eingefügt.', 'success');
       }
-    `;
-    document.head.appendChild(waveStyles);
-  }
-});
-
-// Room Code Generation
-function generateRoomCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-// Room System Event Handlers
-socket.on('roomCreated', (data) => {
-  console.log('Room created successfully:', data);
-  roomCode = data.code;
-  isHost = true;
-  
-  // Show room info
-  showRoomInfo(data.code);
-  
-  // Minimize lobby view to show only game elements
-  minimizeLobbyView();
-  
-  // Show host controls
-  document.getElementById('host-controls').style.display = 'block';
-  
-  // Enable chat for created room
-  const liveChat = document.getElementById('live-chat');
-  if (liveChat) {
-    liveChat.style.display = 'block';
-  }
-  
-  // Add XP for creating room
-  addXP(25, 'Raum erstellt');
-  showAchievement('Gastgeber', 'Du hast einen Raum erstellt!');
-});
-
-// Room Info Display Function
-function showRoomInfo(code) {
-  const roomInfo = document.getElementById('room-info');
-  const roomCodeText = document.getElementById('room-code-text');
-  const copyCodeBtn = document.getElementById('copy-code-btn');
-  
-  if (roomInfo && roomCodeText) {
-    roomCodeText.textContent = code;
-    roomInfo.style.display = 'block';
+    }, 500);
     
-    // Show lobby screen
-    showLobby();
-    
-    // Setup copy button
-    if (copyCodeBtn) {
-      copyCodeBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(code).then(() => {
-          copyCodeBtn.textContent = '✅';
-          setTimeout(() => copyCodeBtn.textContent = '📋', 2000);
-        });
-      });
+    // Clear URL to avoid confusion
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-    
-    // Setup share buttons
-    setupShareButtons(code);
   }
 }
 
-// Show Lobby Function
-function showLobby() {
-  // Hide all screens
-  document.getElementById('start-menu').style.display = 'none';
-  const footballSettings = document.getElementById('football-settings');
-  if (footballSettings) footballSettings.style.display = 'none';
-  const gamemasterSettings = document.getElementById('gamemaster-settings');
-  if (gamemasterSettings) gamemasterSettings.style.display = 'none';
-  
-  // Show lobby screen
-  const lobbyScreen = document.getElementById('lobby');
-  if (lobbyScreen) {
-    lobbyScreen.style.display = 'block';
+// Show notification function
+function showNotification(message, type = 'info') {
+  // Create notification element if it doesn't exist
+  let notification = document.getElementById('notification');
+  if (!notification) {
+    notification = document.createElement('div');
+    notification.id = 'notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 20, 35, 0.95);
+      backdrop-filter: blur(20px);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      z-index: 10000;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      opacity: 0;
+      transform: translateX(-50%) translateY(-30px);
+      max-width: 90%;
+      text-align: center;
+    `;
+    document.body.appendChild(notification);
   }
   
-  // Add screen transition animation
-  document.querySelector('.game-container').classList.add('screen-transition');
+  // Set message and color based on type
+  notification.textContent = message;
+  
+  if (type === 'success') {
+    notification.style.borderColor = 'rgba(0, 255, 0, 0.5)';
+    notification.style.background = 'rgba(15, 35, 15, 0.95)';
+  } else if (type === 'error') {
+    notification.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+    notification.style.background = 'rgba(35, 15, 15, 0.95)';
+  } else {
+    notification.style.borderColor = 'rgba(0, 255, 255, 0.3)';
+    notification.style.background = 'rgba(15, 20, 35, 0.95)';
+  }
+  
+  // Show notification
   setTimeout(() => {
-    document.querySelector('.game-container').classList.remove('screen-transition');
-  }, 300);
+    notification.style.opacity = '1';
+    notification.style.transform = 'translateX(-50%) translateY(0)';
+  }, 100);
+  
+  // Hide notification after 4 seconds
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(-50%) translateY(-30px)';
+  }, 4000);
 }
-
-socket.on('roomJoined', (data) => {
-  console.log('Room joined successfully:', data);
-  roomCode = data.code;
-  isHost = false;
-  
-  // Show room info
-  showRoomInfo(data.code);
-  
-  // Minimize lobby view to show only game elements
-  minimizeLobbyView();
-  
-  // Enable chat for joined room
-  const liveChat = document.getElementById('live-chat');
-  if (liveChat) {
-    liveChat.style.display = 'block';
-  }
-  
-  // Add XP for joining room
-  addXP(15, 'Raum beigetreten');
-});
-
-socket.on('roomError', (error) => {
-  console.error('Room error:', error);
-  showErrorMessage(error.message || 'Ein Fehler ist aufgetreten');
-});
 
 // ===== NEUE SOCKET EVENTS FÜR NEUE RUNDE & RAUM VERLASSEN =====
 
@@ -1491,36 +1629,33 @@ function playMessageSound() {
   }
 }
 
-// Enhanced chat toggle functionality with better mobile support
+// Enhanced chat toggle functionality with better mobile support and minimize feature
 function toggleChatVisibility() {
   const liveChat = document.getElementById('live-chat');
   const toggleBtn = document.getElementById('toggle-chat');
   
   if (!liveChat || !toggleBtn) return;
   
-  chatVisible = !chatVisible;
+  // Check current state
+  const isMinimized = liveChat.classList.contains('minimized');
+  const isVisible = liveChat.classList.contains('visible');
   
-  if (chatVisible) {
+  if (!isVisible && !isMinimized) {
+    // Show chat
     liveChat.style.display = 'block';
-    // Add slide-in animation
-    liveChat.style.transform = 'translateY(100%)';
-    liveChat.style.opacity = '0';
+    setTimeout(() => {
+      liveChat.classList.add('visible');
+    }, 10);
     
-    requestAnimationFrame(() => {
-      liveChat.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease';
-      liveChat.style.transform = 'translateY(0)';
-      liveChat.style.opacity = '1';
-    });
+    toggleBtn.textContent = '−';
+    toggleBtn.setAttribute('aria-label', 'Chat minimieren');
+    chatVisible = true;
     
-    toggleBtn.textContent = '✖️';
-    toggleBtn.setAttribute('aria-label', 'Chat schließen');
-    
-    // Focus input when opening chat (with delay for animation)
+    // Focus input when opening chat
     const chatInput = document.getElementById('chat-input');
     if (chatInput) {
       setTimeout(() => {
         chatInput.focus();
-        // Prevent zoom on iOS by ensuring font-size is 16px
         if (window.innerWidth <= 768) {
           chatInput.style.fontSize = '16px';
         }
@@ -1532,26 +1667,41 @@ function toggleChatVisibility() {
       document.body.classList.add('chat-open');
     }
     
-  } else {
-    // Add slide-out animation
-    liveChat.style.transform = 'translateY(100%)';
-    liveChat.style.opacity = '0';
-    
-    setTimeout(() => {
-      liveChat.style.display = 'none';
-      liveChat.style.transition = '';
-    }, 300);
+  } else if (isVisible && !isMinimized) {
+    // Minimize chat
+    liveChat.classList.remove('visible');
+    liveChat.classList.add('minimized');
     
     toggleBtn.textContent = '💬';
     toggleBtn.setAttribute('aria-label', 'Chat öffnen');
+    chatVisible = false;
     
     // Remove body class
     document.body.classList.remove('chat-open');
     
-    // Blur any focused input to hide mobile keyboard
-    const activeElement = document.activeElement;
-    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
-      activeElement.blur();
+  } else if (isMinimized) {
+    // Restore from minimized
+    liveChat.classList.remove('minimized');
+    liveChat.classList.add('visible');
+    
+    toggleBtn.textContent = '−';
+    toggleBtn.setAttribute('aria-label', 'Chat minimieren');
+    chatVisible = true;
+    
+    // Focus input when restoring chat
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+      setTimeout(() => {
+        chatInput.focus();
+        if (window.innerWidth <= 768) {
+          chatInput.style.fontSize = '16px';
+        }
+      }, 350);
+    }
+    
+    // Add body class for mobile layout adjustments
+    if (window.innerWidth <= 768) {
+      document.body.classList.add('chat-open');
     }
   }
   
@@ -1796,5 +1946,3 @@ function setupChatSwipeGestures() {
     }
   });
 }
-
-// ...existing code...
