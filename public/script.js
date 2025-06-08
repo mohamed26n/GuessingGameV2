@@ -797,7 +797,33 @@ socket.on('roomError', (data) => {
 // Socket Event Handlers für Raum-Management
 socket.on('message', (message) => {
   console.log('Server message:', message);
-  showNotification(message, 'info');
+  
+  // Check if this is a football player name (not imposter message)
+  if (message.startsWith('Der Fußballspieler ist: ')) {
+    // Extract the player name
+    const playerName = message.replace('Der Fußballspieler ist: ', '');
+    
+    // Show in result div permanently
+    const resultDiv = document.getElementById('result');
+    if (resultDiv) {
+      resultDiv.innerHTML = `
+        <div class="football-player-display">
+          <div class="player-icon">⚽</div>
+          <div class="player-info">
+            <h3>Gesuchter Spieler</h3>
+            <div class="player-name">${playerName}</div>
+          </div>
+        </div>
+      `;
+      resultDiv.style.display = 'block';
+    }
+    
+    // Also show as notification temporarily
+    showNotification(message, 'info');
+  } else {
+    // For all other messages, just show notification
+    showNotification(message, 'info');
+  }
 });
 
 // Handle imposter status
@@ -1311,6 +1337,13 @@ socket.on('newRoundStarted', () => {
   document.getElementById('imposter-status').textContent = '';
   document.getElementById('imposter-status').className = '';
   
+  // Result div zurücksetzen
+  const resultDiv = document.getElementById('result');
+  if (resultDiv) {
+    resultDiv.innerHTML = '';
+    resultDiv.style.display = 'none';
+  }
+  
   // Game Over Controls verstecken
   const gameOverControls = document.getElementById('game-over-controls');
   if (gameOverControls) {
@@ -1342,6 +1375,13 @@ socket.on('roomLeft', () => {
   document.getElementById('imposter-status').textContent = '';
   document.getElementById('imposter-status').className = '';
   document.getElementById('players-list').innerHTML = '';
+  
+  // Result div zurücksetzen
+  const resultDiv = document.getElementById('result');
+  if (resultDiv) {
+    resultDiv.innerHTML = '';
+    resultDiv.style.display = 'none';
+  }
   
   // Lobby-Ansicht wiederherstellen
   restoreLobbyView();
