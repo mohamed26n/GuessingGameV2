@@ -3296,3 +3296,172 @@ body.chat-open {
         height: 56px;
     }
 }
+
+/* ===== FOOTBALL PLAYER DISPLAY ===== */
+.football-player-display {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  color: white;
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.4);
+  margin: 1.5rem auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  max-width: 500px;
+  width: 100%;
+  animation: slideIn 0.5s ease-out;
+}
+
+.football-player-display .player-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  animation: bounce 2s infinite;
+}
+
+.football-player-display .player-info h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.football-player-display .player-name {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+/* ===== GAMEMASTER TOPIC DISPLAY ===== */
+.gamemaster-topic-display {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  color: white;
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.4);
+  margin: 1.5rem auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  max-width: 500px;
+  width: 100%;
+  animation: slideIn 0.5s ease-out;
+}
+
+.gamemaster-topic-display .topic-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  animation: pulse 2s infinite;
+}
+
+.gamemaster-topic-display .topic-info h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.gamemaster-topic-display .topic-name {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .football-player-display,
+  .gamemaster-topic-display {
+    padding: 1.5rem;
+    margin: 1rem auto;
+    border-radius: 16px;
+  }
+  
+  .football-player-display .player-name,
+  .gamemaster-topic-display .topic-name {
+    font-size: 1.4rem;
+  }
+  
+  .football-player-display .player-icon,
+  .gamemaster-topic-display .topic-icon {
+    font-size: 2.5rem;
+  }
+  
+  .football-player-display .player-info h3,
+  .gamemaster-topic-display .topic-info h3 {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .football-player-display,
+  .gamemaster-topic-display {
+    padding: 1.25rem;
+    margin: 0.75rem auto;
+    border-radius: 12px;
+  }
+  
+  .football-player-display .player-name,
+  .gamemaster-topic-display .topic-name {
+    font-size: 1.2rem;
+  }
+  
+  .football-player-display .player-icon,
+  .gamemaster-topic-display .topic-icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .football-player-display .player-info h3,
+  .gamemaster-topic-display .topic-info h3 {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+}
