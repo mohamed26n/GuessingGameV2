@@ -23,6 +23,17 @@
         overflow-x: hidden;
         min-width: 0;
     }
+
+    /* Hide intensive visual effects on mobile */
+    .background-3d,
+    .glassmorphism-particles,
+    #particle-system {
+        display: none !important;
+    }
+
+    .game-mode-card {
+        transform: none !important;
+    }
     
     /* Lobby Header Mobile */
     .lobby-header {
