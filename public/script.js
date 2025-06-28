@@ -394,11 +394,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize Theme
   initializeTheme();
   
-  // Create glassmorphism particles
-  createGlassmorphismParticles();
-  
-  // Enhance card effects
-  enhanceCardEffects();
+  const isDesktop = window.innerWidth >= 769;
+
+  // Create glassmorphism particles and advanced card effects only on larger screens
+  if (isDesktop) {
+    createGlassmorphismParticles();
+    enhanceCardEffects();
+    // Additional particles for visual flair
+    setTimeout(createOptimizedParticles, 500);
+  }
   
   // Initialize Chat - WICHTIG FÜR CHAT-SICHTBARKEIT
   initializeChat();
@@ -428,8 +432,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add glassmorphism interactions
   addGlassmorphismInteractions();
   
-  // Create optimized particles
-  setTimeout(createOptimizedParticles, 500);
   
   // Enhanced Haptic Feedback for Mobile
   document.querySelectorAll('button, .game-mode-card').forEach(element => {
