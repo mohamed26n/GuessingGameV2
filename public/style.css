@@ -1811,6 +1811,11 @@ body.light-mode .theme-toggle {
     margin-bottom: 2rem;
 }
 
+#welcome,
+#welcome2 {
+    text-align: center;
+}
+
 .join-section {
     max-width: 500px;
     margin: 0 auto;
@@ -2566,7 +2571,6 @@ body.imposter .game-over-stats {
 
 .live-chat.minimized {
     transform: translateY(calc(100% - 60px));
-    to { transform: rotate(360deg); }
 }
 
 .btn.loading {
