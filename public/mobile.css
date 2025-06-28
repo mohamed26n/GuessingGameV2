@@ -23,6 +23,17 @@
         overflow-x: hidden;
         min-width: 0;
     }
+
+    /* Hide intensive visual effects on mobile */
+    .background-3d,
+    .glassmorphism-particles,
+    #particle-system {
+        display: none !important;
+    }
+
+    .game-mode-card {
+        transform: none !important;
+    }
     
     /* Lobby Header Mobile */
     .lobby-header {
@@ -44,7 +55,9 @@
     
     /* Username Input Mobile */
     .username-input-group {
-        margin-bottom: 20px;
+        margin: 0 auto 20px;
+        max-width: 400px;
+        text-align: center;
     }
     
     .username-input-group input {
@@ -63,7 +76,9 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        margin-bottom: 20px;
+        margin: 0 auto 20px;
+        max-width: 400px;
+        text-align: center;
     }
     
     .join-option {
@@ -94,7 +109,9 @@
     
     /* Room Input Section Mobile */
     .room-input-section {
-        margin-bottom: 20px;
+        margin: 0 auto 20px;
+        max-width: 400px;
+        text-align: center;
     }
     
     .input-section {
@@ -519,7 +536,9 @@
     /* Better spacing for lobby */
     .join-section {
         width: 100%;
-        max-width: none;
+        max-width: 400px;
+        margin: 0 auto;
+        text-align: center;
     }
     
     /* Result message styling */
